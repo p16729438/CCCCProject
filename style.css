@@ -1,0 +1,43 @@
+@font-face {
+  font-family: "DOSMyungjo";
+  src: url("DOSMyungjo.woff") format("woff");
+}
+
+* {
+  border: 0px;
+  font-family: "DOSMyungjo";
+  margin: 0px;
+  padding: 0px;
+}
+
+#content {
+  border-top: 1px solid #cccccc;
+  display: grid;
+  grid-template-columns: 1fr 8fr 1fr;
+}
+
+#content p {
+  font-size: 20px;
+}
+
+#content-middle {
+  border-left: 1px solid #cccccc;
+  border-right: 1px solid #cccccc;
+  padding: 15px;
+  min-height: calc(100vh - 198px);
+}
+
+#content-title {
+  font-size: 30px;
+}
+
+#header {
+  font-size: 100px;
+  padding: 30px;
+  text-align: center;
+}
+
+::selection {
+  background-color: #aaaaaa;
+  color: #000000;
+}
