@@ -1,11 +1,6 @@
-@font-face {
-  font-family: "DOSMyungjo";
-  src: url("DOSMyungjo.woff") format("woff");
-}
-
 * {
   border: 0px;
-  font-family: "DOSMyungjo";
+  font-family: "Arial";
   margin: 0px;
   padding: 0px;
 }
@@ -24,11 +19,12 @@
   border-left: 1px solid #cccccc;
   border-right: 1px solid #cccccc;
   padding: 15px;
-  min-height: calc(100vh - 198px);
+  min-height: calc(100vh - 206px);
 }
 
 #content-title {
   font-size: 30px;
+  text-align: center;
 }
 
 #header {

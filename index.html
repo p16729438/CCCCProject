@@ -25,18 +25,20 @@
         <br />
         <br />
         <br />
-        <p>{ CCCC }: Counterexample Collaboration for Collatz Conjecture 프로젝트는 콜라츠 추측의 루프 반례를 찾기 위한 연산을 웹 페이지에 접속중인 컴퓨터들과 함께 수행하는 프로젝트입니다!</p>
-        <div id="info" hidden>
+        <p>{ CCCC }: Counterexample Collaboration for Collatz Conjecture 프로젝트는 콜라츠 추측의 무한 루프 반례를 찾기 위한 연산을 웹 페이지에 접속중인 컴퓨터들과 함께 수행하는 프로젝트입니다!</p>
+        <div id="info">
           <br />
           <br />
           <br />
           <br />
           <br />
-          <br />
-          <div id="counterexample">
+          <div id="loading">
+            <p>잠시 후 연산이 시작됩니다.</p>
+          </div>
+          <div id="counterexample" hidden="true">
             <p>콜라츠 추측의 반례: <span id="n"></span></p>
           </div>
-          <div id="calculate">
+          <div id="calculator" hidden="true">
             <p>실시간 연산 정보</p>
             <br />
             <p>a: <span id="a"></span></p>

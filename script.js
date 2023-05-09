@@ -5,43 +5,7 @@ let b = 0;
 
 let recipe = "0";
 
-const socket = new WebSocket("wss://" + window.location.hostname);
-
-socket.addEventListener("message", (ev) => {
-  if (ev.data.startsWith("end")) {
-    document.querySelector("#calculate").remove();
-    document.querySelector("#n").textContent = ev.data.split(";")[1].replace("n", "");
-    document.querySelector("#info").removeAttribute("hidden");
-  } else {
-    id = parseInt(ev.data.split(";")[0]);
-    a = parseInt(ev.data.split(";")[1]);
-    b = parseInt(ev.data.split(";")[2]);
-    recipe = ev.data.split(";")[3];
-
-    document.querySelector("#counterexample").remove();
-    document.querySelector("#a").textContent = a;
-    document.querySelector("#b").textContent = b;
-    document.querySelector("#info").removeAttribute("hidden");
-  }
-});
-
-socket.addEventListener("error", (ev) => {
-  id = 0;
-  a = 0;
-  b = 0;
-  p = 0n;
-  q = 0n;
-  recipe = "0";
-});
-
-socket.addEventListener("close", (ev) => {
-  id = 0;
-  a = 0;
-  b = 0;
-  p = 0n;
-  q = 0n;
-  recipe = "0";
-});
+let isFirstCalculation = true;
 
 const limit = 1000;
 let count = 0;
@@ -51,30 +15,107 @@ let q = 1n;
 
 let powerNumbers = [];
 
-setTimeout(init, 1000);
+let socket = null;
+
+const onMessage = (ev) => {
+  if (ev.data.startsWith("end")) {
+    document.querySelector("#n").textContent = ev.data.split(";")[1].replace("n", "");
+    document.querySelector("#loading").setAttribute("hidden", true);
+    document.querySelector("#counterexample").removeAttribute("hidden");
+    return;
+  }
+
+  id = parseInt(ev.data.split(";")[0]);
+  a = parseInt(ev.data.split(";")[1]);
+  b = parseInt(ev.data.split(";")[2]);
+  recipe = ev.data.split(";")[3];
+};
+
+const onError = (ev) => {
+  reload();
+};
+
+const onClose = (ev) => {
+  reload();
+};
+
+setTimeout(getData, 1000);
 
 /**
  * @returns void
  */
-function init() {
+function getData() {
+  id = 0;
+  a = 0;
+  b = 0;
+  recipe = "0";
+  isFirstCalculation = true;
+  p = 0n;
+  q = 0n;
+  count = 0;
   powerNumbers = [];
+
+  if (socket != null) {
+    socket.removeEventListener("message", onMessage);
+    socket.removeEventListener("error", onError);
+    socket.removeEventListener("close", onClose);
+    socket.close();
+    socket = null;
+  }
+
+  socket = new WebSocket("wss://" + window.location.hostname);
+
+  socket.addEventListener("message", onMessage);
+  socket.addEventListener("error", onError);
+  socket.addEventListener("close", onClose);
+
+  setTimeout(init, 100);
+}
+
+function init() {
   p = 1n;
   q = 1n;
-
-  for (let i = 0; i < a; i++) {
-    powerNumbers.push(p);
-    p *= 2n;
-  }
 
   for (i = 0; i < b; i++) {
     q *= 3n;
   }
 
-  if (id != 0n) {
-    calculate();
-  } else {
-    window.location.reload();
+  for (let i = 0; i < a - 1; i++) {
+    powerNumbers.push(p);
+    p *= 2n;
   }
+
+  if (p < q) {
+    isFirstCalculation = true;
+  } else {
+    isFirstCalculation = false;
+  }
+
+  powerNumbers.push(p);
+  p *= 2n;
+
+  setTimeout(start, 100);
+}
+
+/**
+ * @returns void
+ */
+function start() {
+  if (id != 0n && a != 0 && b != 0 && powerNumbers.length == a) {
+    document.querySelector("#a").textContent = a;
+    document.querySelector("#b").textContent = b;
+    document.querySelector("#loading").setAttribute("hidden", true);
+    document.querySelector("#calculator").removeAttribute("hidden");
+
+    calculate();
+    return;
+  }
+
+  document.querySelector("#loading").removeAttribute("hidden");
+  document.querySelector("#counterexample").setAttribute("hidden", true);
+  document.querySelector("#calculator").setAttribute("hidden", true);
+
+  setTimeout(getData, 1000);
 }
 
 /**
@@ -86,17 +127,24 @@ function calculate() {
       check(recipe);
       count = 0;
       nextRecipe();
-      setTimeout(calculate, 1);
-    } else {
-      check(recipe);
-      count++;
-      nextRecipe();
-      calculate();
+      setTimeout(calculate, 10);
+      return;
     }
-  } else {
-    socket.send(id + ";end");
-    window.location.reload();
+
+    check(recipe);
+    count++;
+    nextRecipe();
+    calculate();
+    return;
   }
+
+  sendData(id + ";end");
+
+  document.querySelector("#loading").removeAttribute("hidden");
+  document.querySelector("#counterexample").setAttribute("hidden", true);
+  document.querySelector("#calculator").setAttribute("hidden", true);
+
+  setTimeout(getData, 1000);
 }
 
 /**
@@ -117,11 +165,20 @@ function nextRecipe() {
       recipe = recipe.substring(0, recipe.lastIndexOf("1") - 1) + "0" + recipe.substring(recipe.lastIndexOf("1"));
       recipe = recipe.substring(0, recipe.lastIndexOf("1") + 1) + "1".repeat(i) + recipe.substring(recipe.lastIndexOf("1") + i + 1);
     } else {
-      recipe = null;
+      reload();
     }
-  } else {
-    recipe = null;
+
+    if (recipe.endsWith("1")) {
+      return;
+    }
+    if (isFirstCalculation) {
+      return;
+    }
+    nextRecipe();
+    return;
   }
+
+  recipe = null;
 }
 
 /**
@@ -130,17 +187,27 @@ function nextRecipe() {
 function check() {
   const k = getK(recipe);
 
-  document.querySelector("#recipe").textContent = recipe;
-  document.querySelector("#k").textContent = k;
+  if (!recipe.startsWith("0")) {
+    document.querySelector("#recipe").textContent = recipe;
+    document.querySelector("#k").textContent = k;
 
-  if (k != 0n && hasN(k)) {
-    const n = k / (p - q);
-    if (n != 1n) {
-      socket.send(id + ";" + recipe + ";" + n);
+    if (k != 0n) {
+      if (hasN(k)) {
+        const n = k / (p - q);
+        if (n > 1n) {
+          sendData(id + ";" + recipe + ";" + n);
+          return;
+        }
+      }
+      if (count == limit) {
+        sendData(id + ";" + recipe);
+        return;
+      }
     }
-  } else if (count == limit) {
-    socket.send(id + ";" + recipe);
   }
+
+  document.querySelector("#recipe").textContent = recipe;
+  document.querySelector("#k").textContent = 0;
 }
 
 /**
@@ -161,5 +228,44 @@ function getK() {
       k = k * 3n + powerNumbers[i];
     }
   }
+
   return k;
+}
+
+/**
+ * @param {string} data
+ * @returns void
+ */
+function sendData(data) {
+  if (socket != null) {
+    if (socket.readyState == 1) {
+      socket.send(data);
+      return;
+    }
+  }
+
+  reload();
+}
+
+/**
+ * @returns void
+ */
+function reload() {
+  if (socket != null) {
+    socket.removeEventListener("message", onMessage);
+    socket.removeEventListener("error", onError);
+    socket.removeEventListener("close", onClose);
+    socket.close();
+    socket = null;
+  }
+
+  id = 0;
+  a = 0;
+  b = 0;
+  recipe = "0";
+  isFirstCalculation = true;
+  p = 0n;
+  q = 0n;
+
+  window.location.reload();
 }
