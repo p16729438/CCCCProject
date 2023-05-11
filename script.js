@@ -1,4 +1,4 @@
-let id = 0;
+let isCalculating = false;
 
 let a = 0;
 let b = 0;
@@ -15,20 +15,29 @@ let q = 1n;
 
 let powerNumbers = [];
 
-let socket = null;
-
 const onMessage = (ev) => {
+  if (isCalculating) {
+    reload();
+    return;
+  }
+
   if (ev.data.startsWith("end")) {
     document.querySelector("#n").textContent = ev.data.split(";")[1].replace("n", "");
     document.querySelector("#loading").setAttribute("hidden", true);
     document.querySelector("#counterexample").removeAttribute("hidden");
     return;
   }
+  a = parseInt(ev.data.split(";")[0]);
+  b = parseInt(ev.data.split(";")[1]);
+  recipe = ev.data.split(";")[2];
 
-  id = parseInt(ev.data.split(";")[0]);
-  a = parseInt(ev.data.split(";")[1]);
-  b = parseInt(ev.data.split(";")[2]);
-  recipe = ev.data.split(";")[3];
+  isFirstCalculation = true;
+  p = 0n;
+  q = 0n;
+  count = 0;
+  powerNumbers = [];
+
+  setTimeout(init, 100);
 };
 
 const onError = (ev) => {
@@ -39,39 +48,15 @@ const onClose = (ev) => {
   reload();
 };
 
-setTimeout(getData, 1000);
+const socket = new WebSocket("wss://" + window.location.hostname);
+
+socket.addEventListener("message", onMessage);
+socket.addEventListener("error", onError);
+socket.addEventListener("close", onClose);
 
 /**
  * @returns void
  */
-function getData() {
-  id = 0;
-  a = 0;
-  b = 0;
-  recipe = "0";
-  isFirstCalculation = true;
-  p = 0n;
-  q = 0n;
-  count = 0;
-  powerNumbers = [];
-
-  if (socket != null) {
-    socket.removeEventListener("message", onMessage);
-    socket.removeEventListener("error", onError);
-    socket.removeEventListener("close", onClose);
-    socket.close();
-    socket = null;
-  }
-
-  socket = new WebSocket("wss://" + window.location.hostname);
-
-  socket.addEventListener("message", onMessage);
-  socket.addEventListener("error", onError);
-  socket.addEventListener("close", onClose);
-
-  setTimeout(init, 100);
-}
-
 function init() {
   p = 1n;
   q = 1n;
@@ -101,12 +86,12 @@ function init() {
  * @returns void
  */
 function start() {
-  if (id != 0n && a != 0 && b != 0 && powerNumbers.length == a) {
+  if (a != 0 && b != 0 && powerNumbers.length == a) {
     document.querySelector("#a").textContent = a;
     document.querySelector("#b").textContent = b;
     document.querySelector("#loading").setAttribute("hidden", true);
     document.querySelector("#calculator").removeAttribute("hidden");
-
+    isCalculating = true;
     calculate();
     return;
   }
@@ -115,70 +100,71 @@ function start() {
   document.querySelector("#counterexample").setAttribute("hidden", true);
   document.querySelector("#calculator").setAttribute("hidden", true);
 
-  setTimeout(getData, 1000);
+  reload();
 }
 
 /**
  * @returns void
  */
 function calculate() {
-  if (recipe != null) {
-    if (count == limit) {
-      check(recipe);
-      count = 0;
-      nextRecipe();
-      setTimeout(calculate, 10);
-      return;
-    }
+  if (recipe == null) {
+    isCalculating = false;
+    sendData(a + ";" + b + ";end");
 
-    check(recipe);
+    document.querySelector("#loading").removeAttribute("hidden");
+    document.querySelector("#counterexample").setAttribute("hidden", true);
+    document.querySelector("#calculator").setAttribute("hidden", true);
+    return;
+  }
+
+  check(recipe);
+  nextRecipe();
+
+  if (count != limit) {
     count++;
-    nextRecipe();
     calculate();
     return;
   }
 
-  sendData(id + ";end");
-
-  document.querySelector("#loading").removeAttribute("hidden");
-  document.querySelector("#counterexample").setAttribute("hidden", true);
-  document.querySelector("#calculator").setAttribute("hidden", true);
-
-  setTimeout(getData, 1000);
+  count = 0;
+  setTimeout(calculate, 10);
 }
 
 /**
  * @returns void
  */
 function nextRecipe() {
-  if (recipe.startsWith("1")) {
-    if (recipe.endsWith("0")) {
-      recipe = recipe.substring(0, recipe.lastIndexOf("1") + 1) + "1" + recipe.substring(recipe.lastIndexOf("1") + 2);
-      recipe = recipe.substring(0, recipe.lastIndexOf("1") - 1) + "0" + recipe.substring(recipe.lastIndexOf("1"));
-    } else if (recipe.endsWith("1")) {
-      let i = 0;
-      while (recipe[recipe.length - i - 1] == 1) {
-        i++;
-      }
-      recipe = recipe.substring(0, recipe.length - i) + "0".repeat(i);
-      recipe = recipe.substring(0, recipe.lastIndexOf("1") + 1) + "1" + recipe.substring(recipe.lastIndexOf("1") + 2);
-      recipe = recipe.substring(0, recipe.lastIndexOf("1") - 1) + "0" + recipe.substring(recipe.lastIndexOf("1"));
-      recipe = recipe.substring(0, recipe.lastIndexOf("1") + 1) + "1".repeat(i) + recipe.substring(recipe.lastIndexOf("1") + i + 1);
-    } else {
-      reload();
-    }
-
-    if (recipe.endsWith("1")) {
-      return;
-    }
-    if (isFirstCalculation) {
-      return;
-    }
-    nextRecipe();
+  if (!recipe.startsWith("1")) {
+    recipe = null;
     return;
   }
 
-  recipe = null;
+  if (recipe.endsWith("0")) {
+    recipe = recipe.substring(0, recipe.lastIndexOf("1") + 1) + "1" + recipe.substring(recipe.lastIndexOf("1") + 2);
+    recipe = recipe.substring(0, recipe.lastIndexOf("1") - 1) + "0" + recipe.substring(recipe.lastIndexOf("1"));
+  } else if (recipe.endsWith("1")) {
+    let i = 0;
+    while (recipe[recipe.length - i - 1] == 1) {
+      i++;
+    }
+    recipe = recipe.substring(0, recipe.length - i) + "0".repeat(i);
+    recipe = recipe.substring(0, recipe.lastIndexOf("1") + 1) + "1" + recipe.substring(recipe.lastIndexOf("1") + 2);
+    recipe = recipe.substring(0, recipe.lastIndexOf("1") - 1) + "0" + recipe.substring(recipe.lastIndexOf("1"));
+    recipe = recipe.substring(0, recipe.lastIndexOf("1") + 1) + "1".repeat(i) + recipe.substring(recipe.lastIndexOf("1") + i + 1);
+  } else {
+    reload();
+  }
+
+  if (recipe.endsWith("1")) {
+    return;
+  }
+
+  if (isFirstCalculation) {
+    return;
+  }
+
+  nextRecipe();
+  return;
 }
 
 /**
@@ -187,35 +173,27 @@ function nextRecipe() {
 function check() {
   const k = getK(recipe);
 
-  if (!recipe.startsWith("0")) {
+  if (recipe.startsWith("0")) {
     document.querySelector("#recipe").textContent = recipe;
-    document.querySelector("#k").textContent = k;
-
-    if (k != 0n) {
-      if (hasN(k)) {
-        const n = k / (p - q);
-        if (n > 1n) {
-          sendData(id + ";" + recipe + ";" + n);
-          return;
-        }
-      }
-      if (count == limit) {
-        sendData(id + ";" + recipe);
-        return;
-      }
-    }
+    document.querySelector("#k").textContent = 0;
+    return;
   }
 
   document.querySelector("#recipe").textContent = recipe;
-  document.querySelector("#k").textContent = 0;
-}
+  document.querySelector("#k").textContent = k;
 
-/**
- * @param {bigint} k
- * @returns boolean
- */
-function hasN(k) {
-  return k % (p - q) === 0n;
+  if (k % (p - q) == 0n) {
+    const n = k / (p - q);
+    if (n > 1n) {
+      sendData(a + ";" + b + ";" + recipe + ";" + n);
+      return;
+    }
+  }
+
+  if (count == limit) {
+    sendData(a + ";" + b + ";" + recipe);
+    return;
+  }
 }
 
 /**
@@ -237,14 +215,17 @@ function getK() {
  * @returns void
  */
 function sendData(data) {
-  if (socket != null) {
-    if (socket.readyState == 1) {
-      socket.send(data);
-      return;
-    }
+  if (socket == null) {
+    reload();
+    return;
   }
 
-  reload();
+  if (socket.readyState != 1) {
+    reload();
+    return;
+  }
+
+  socket.send(data);
 }
 
 /**
@@ -256,10 +237,9 @@ function reload() {
     socket.removeEventListener("error", onError);
     socket.removeEventListener("close", onClose);
     socket.close();
-    socket = null;
   }
 
-  id = 0;
+  isCalculating = false;
   a = 0;
   b = 0;
   recipe = "0";
