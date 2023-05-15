@@ -15,6 +15,8 @@ let q = 1n;
 
 let powerNumbers = [];
 
+const protocol = location.protocol.replace("http", "ws");
+
 const onMessage = (ev) => {
   if (isCalculating) {
     reload();
@@ -48,7 +50,7 @@ const onClose = (ev) => {
   reload();
 };
 
-const socket = new WebSocket("wss://" + window.location.hostname);
+const socket = new WebSocket(protocol + "//" + window.location.hostname);
 
 socket.addEventListener("message", onMessage);
 socket.addEventListener("error", onError);
@@ -164,7 +166,6 @@ function nextRecipe() {
   }
 
   nextRecipe();
-  return;
 }
 
 /**
