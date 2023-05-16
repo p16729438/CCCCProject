@@ -39,7 +39,7 @@ const onMessage = (ev) => {
   count = 0;
   powerNumbers = [];
 
-  setTimeout(init, 100);
+  setTimeout(initCalculation, 100);
 };
 
 const onError = (ev) => {
@@ -59,7 +59,7 @@ socket.addEventListener("close", onClose);
 /**
  * @returns void
  */
-function init() {
+function initCalculation() {
   p = 1n;
   q = 1n;
 
@@ -81,13 +81,13 @@ function init() {
   powerNumbers.push(p);
   p *= 2n;
 
-  setTimeout(start, 100);
+  setTimeout(startCalculation, 100);
 }
 
 /**
  * @returns void
  */
-function start() {
+function startCalculation() {
   if (a != 0 && b != 0 && powerNumbers.length == a) {
     document.querySelector("#a").textContent = a;
     document.querySelector("#b").textContent = b;
@@ -119,7 +119,7 @@ function calculate() {
     return;
   }
 
-  check(recipe);
+  checkK(recipe);
   nextRecipe();
 
   if (count != limit) {
@@ -171,7 +171,7 @@ function nextRecipe() {
 /**
  * @returns void
  */
-function check() {
+function checkK() {
   const k = getK(recipe);
 
   if (recipe.startsWith("0")) {

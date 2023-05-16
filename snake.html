@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
     <link rel="manifest" href="site.webmanifest" />
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#222222" />
+    <link rel="stylesheet" href="snake.css" />
     <link rel="stylesheet" href="style.css" />
 
     <meta charset="utf-8" />
@@ -16,6 +17,7 @@
     <meta name="theme-color" content="#222222" />
 
     <script defer src="script.js"></script>
+    <script defer src="snake.js"></script>
 
     <title>{ CCCC }</title>
   </head>
@@ -27,12 +29,15 @@
       <div id="article-left"></div>
       <div id="article-middle">
         <div id="content-title">
-          <h2>404 Not Found</h2>
+          <h2>
+            Highscore: <span id="highscore">0</span>
+            <br />
+            Score: <span id="score">0</span>
+          </h2>
         </div>
         <div id="content">
-          <p>페이지를 찾을 수 없습니다.</p>
-          <br />
-          <p>Page not found.</p>
+          <div id="snakegame"><canvas id="snakegame-canvas"></canvas></div>
+          <div id="snakegame-dead"></div>
         </div>
         <div id="info">
           <div id="loading">
