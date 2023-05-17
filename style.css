@@ -31,10 +31,14 @@
 #article-middle {
   border-left: 1px solid #cccccc;
   border-right: 1px solid #cccccc;
-  display: grid;
-  grid-template-rows: 2fr 5fr 3fr;
   min-height: calc(100vh - 257px);
   padding: 15px;
+  position: relative;
+}
+
+#content {
+  position: absolute;
+  top: 100px;
 }
 
 #content-title h2 {
@@ -74,7 +78,11 @@
   background-color: #cccccc;
   border: 1px solid #000000;
   border-radius: 5px;
+  bottom: 15px;
+  left: 15px;
   padding: 10px;
+  position: absolute;
+  right: 15px;
 }
 
 #info * {
