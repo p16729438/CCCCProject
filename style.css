@@ -37,7 +37,9 @@
 }
 
 #content {
+  left: 15px;
   position: absolute;
+  right: 15px;
   top: 100px;
 }
 
